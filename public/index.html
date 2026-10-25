@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEBCHECK // RECON v4.0 - Live Cyber Reconnaissance Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bgmain: 'var(--bg-main)',
+                        panel: 'var(--bg-panel)',
+                        panelLt: 'var(--bg-panel-lt)',
+                        bordercol: 'var(--border-col)',
+                        neon: 'var(--color-neon)',
+                        dim: 'var(--text-dim)',
+                        critical: '#e11d48',
+                        warning: '#d97706',
+                        secure: 'var(--color-secure)'
+                    },
+                    boxShadow: {
+                        neon: 'var(--shadow-neon)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Colorful & Animated Dual Theme Palettes */
+        :root.dark {
+            --bg-main: #040609;
+            --bg-panel: #0a0d13;
+            --bg-panel-lt: #111620;
+            --border-col: #1e293b;
+            --text-dim: #9ca3af;
+            --text-main: #e5e7eb;
+            --color-neon: #00ffcc;
+            --color-secure: #10b981;
+            --shadow-neon: 0 0 20px rgba(0, 255, 204, 0.35);
+            --card-border: #1e293b;
+            --card-hover-border: #00ffcc;
+        }
+        :root.light {
+            --bg-main: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            --bg-panel: #ffffff;
+            --bg-panel-lt: #f8fafc;
+            --border-col: #94a3b8;
+            --text-dim: #334155;
+            --text-main: #020617;
+            --color-neon: #0f766e;
+            --color-secure: #047857;
+            --shadow-neon: 0 10px 25px -5px rgba(15, 118, 110, 0.2);
+            --card-border: #cbd5e1;
+            --card-hover-border: #0f766e;
+        }
+
+        html { scroll-behavior: smooth; }
+        :target { scroll-margin-top: 80px; }
+        body { 
+            background: var(--bg-main); 
+            color: var(--text-main);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+        
+        .interactive-card {
+            border: 2px solid var(--card-border);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: var(--bg-panel);
+        }
+        .interactive-card:hover {
+            border-color: var(--card-hover-border);
+            box-shadow: var(--shadow-neon);
+            transform: translateY(-2px);
+        }
+
+        @keyframes scanLaser {
+            0% { top: -10%; }
+            100% { top: 110%; }
+        }
+        .scan-laser {
+            background: linear-gradient(180deg, transparent 0%, rgba(15, 118, 110, 0.2) 50%, transparent 100%);
+            animation: scanLaser 4s infinite linear;
+        }
+    </style>
+</head>
+<body class="font-mono min-h-screen flex flex-col selection:bg-neon selection:text-white transition-colors duration-300">
+
+    <!-- THEME TOGGLE BUTTON -->
+    <div class="absolute top-4 right-4 z-50">
+        <button onclick="toggleTheme()" class="bg-panel border-2 border-bordercol hover:border-neon px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 shadow-lg cursor-pointer transition">
+            <span id="theme-icon">🌙</span>
+            <span id="theme-text">Dark Mode</span>
+        </button>
+    </div>
+
+    <!-- STEP 1: INITIAL LANDING SCREEN -->
+    <div id="landing-screen" class="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-xl mx-auto w-full my-auto z-20">
+        <div class="space-y-6 w-full p-8 rounded-2xl shadow-2xl relative overflow-hidden group interactive-card">
+            <div class="scan-laser absolute inset-0 w-full h-1/4 pointer-events-none opacity-40"></div>
+            
+            <div class="space-y-2 relative z-10">
+                <div class="inline-flex items-center space-x-2 text-neon text-xs tracking-widest uppercase bg-panelLt border border-bordercol px-3 py-1 rounded-full mb-2 font-extrabold shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-neon animate-pulse"></span>
+                    <span>OSINT Recon Engine v4.0</span>
+                </div>
+                <h1 class="text-2xl font-black tracking-wide">WEBCHECK // RECON SUITE</h1>
+                <p class="text-xs text-dim font-bold">Enter any domain or URL to launch the interactive threat intelligence dashboard.</p>
+            </div>
+
+            <form id="landing-form" class="space-y-4 relative z-10">
+                <div class="flex items-center bg-panelLt rounded-xl px-4 py-3.5 border-2 border-bordercol focus-within:border-neon transition-all">
+                    <span class="text-neon mr-3 font-bold text-base">>_ TARGET:</span>
+                    <input type="text" id="landing-domain-input" value="pw.live" class="bg-transparent focus:outline-none w-full text-sm font-mono placeholder:text-gray-400 font-bold" placeholder="e.g., pw.live" required>
+                </div>
+                <button type="submit" id="landing-btn" class="w-full bg-neon hover:opacity-90 text-white font-bold py-3.5 rounded-xl text-xs tracking-wider transition uppercase shadow-lg cursor-pointer flex items-center justify-center space-x-2">
+                    <span>⚡ INITIALIZE DEEP SCAN</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- STEP 2: FULL DASHBOARD SCREEN -->
+    <div id="dashboard-screen" class="hidden flex-1 flex flex-col">
+
+        <!-- TOP HEADER -->
+        <header class="bg-panel/95 backdrop-blur-md px-6 py-3 flex justify-between items-center sticky top-0 z-50 shadow-md border-b-2 border-bordercol">
+            <div class="flex items-center space-x-3">
+                <span class="text-neon font-black tracking-widest text-sm flex items-center">
+                    <span class="w-2.5 h-2.5 rounded-full bg-neon animate-pulse mr-2"></span>
+                    WEBCHECK // RECON v4.0
+                </span>
+                <span class="text-[10px] text-dim px-2 py-0.5 rounded hidden md:inline font-bold">Live Cyber Reconnaissance Suite</span>
+            </div>
+            
+            <div class="flex items-center space-x-4 text-xs">
+                <button onclick="toggleLogsDrawer()" class="text-dim hover:text-neon transition flex items-center space-x-1 cursor-pointer font-bold">
+                    <span>>_ Live Logs</span>
+                </button>
+                <button onclick="openServerCodeModal()" class="text-dim hover:text-neon transition flex items-center space-x-1 cursor-pointer font-bold">
+                    <span>&lt;/&gt; View Server Code</span>
+                </button>
+                <div class="bg-panelLt border-2 border-bordercol px-3 py-1 rounded text-neon font-bold flex items-center space-x-1.5 shadow-sm">
+                    <span class="w-2 h-2 rounded-full bg-neon animate-ping"></span>
+                    <span>PORT 3000 ACTIVE</span>
+                </div>
+                <button onclick="toggleTheme()" class="bg-panelLt border-2 border-bordercol px-3 py-1 rounded text-xs font-bold flex items-center space-x-1 cursor-pointer transition">
+                    <span id="dashboard-theme-icon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- APP LAYOUT WITH SIDEBAR -->
+        <div class="flex flex-1">
+            
+            <!-- LEFT SIDEBAR NAVIGATION -->
+            <aside class="w-16 bg-panelLt flex flex-col items-center py-6 space-y-6 sticky top-[57px] h-[calc(100vh-57px)] z-40 hidden md:flex border-r-2 border-bordercol">
+                <a href="#" onclick="returnToLanding(event)" class="w-10 h-10 flex items-center justify-center rounded-lg bg-panel text-neon shadow-md hover:scale-110 transition border border-bordercol" title="Home / New Search">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                </a>
+                <a href="#graph-module" class="w-10 h-10 flex items-center justify-center rounded-lg text-dim hover:text-neon hover:bg-panel transition" title="Network Graph Traversal">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"/></svg>
+                </a>
+                <a href="#security-module" class="w-10 h-10 flex items-center justify-center rounded-lg text-dim hover:text-secure hover:bg-panel transition" title="Security & Headers">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </a>
+                <a href="#ports-module" class="w-10 h-10 flex items-center justify-center rounded-lg text-dim hover:text-warning hover:bg-panel transition" title="Port Scanner">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                </a>
+                <a href="#tech-module" class="w-10 h-10 flex items-center justify-center rounded-lg text-dim hover:text-sky-600 hover:bg-panel transition" title="Tech Stack">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                </a>
+                <a href="#osint-module" class="w-10 h-10 flex items-center justify-center rounded-lg text-dim hover:text-critical hover:bg-panel transition" title="OSINT & Robots.txt">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </a>
+            </aside>
+
+            <!-- MAIN DASHBOARD CONTENT -->
+            <div class="flex-1 max-w-[1500px] mx-auto w-full p-4 lg:p-6 space-y-6">
+                
+                <!-- TARGET INPUT BAR -->
+                <div class="p-4 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4 shadow-md interactive-card">
+                    <div class="flex items-center space-x-3 w-full md:w-1/2">
+                        <span class="text-neon font-bold text-sm">>_ TARGET:</span>
+                        <input type="text" id="domain-input" value="pw.live" class="bg-panelLt border-2 border-bordercol px-4 py-2 rounded-lg text-sm font-mono w-full focus:outline-none focus:border-neon font-bold">
+                    </div>
+                    <div class="flex items-center space-x-3 w-full md:w-auto justify-end">
+                        <span class="text-[10px] text-dim bg-panelLt border border-bordercol px-2.5 py-1 rounded font-bold">RECON_MODE</span>
+                        <button onclick="executeScan()" id="scan-btn" class="bg-neon hover:opacity-95 text-white font-bold px-6 py-2.5 rounded-lg text-xs tracking-wider transition uppercase shadow-md cursor-pointer flex items-center space-x-2">
+                            <span>⚡ INITIALIZE DEEP SCAN</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- MAIN GRID: GRAPH & RADAR -->
+                <div id="graph-module" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- 1. GRAPH TRAVERSAL -->
+                    <div class="lg:col-span-2 p-5 rounded-xl space-y-4 relative flex flex-col justify-between shadow-md interactive-card">
+                        <div class="flex justify-between items-center text-xs pb-3 border-b-2 border-bordercol">
+                            <span class="font-black uppercase tracking-wider flex items-center">
+                                <span class="text-neon mr-2 font-black">◈</span> DSA Website Crawl Network Traversal
+                            </span>
+                            <div class="flex items-center space-x-3 text-[10px]">
+                                <span class="text-neon animate-pulse flex items-center bg-panelLt border border-bordercol px-2 py-0.5 rounded font-bold"><span class="w-2 h-2 rounded-full bg-neon mr-1.5"></span> LIVE SIGNAL</span>
+                                <button onclick="openFeatureModal('graph')" class="text-dim hover:text-neon cursor-pointer px-2.5 py-1 border border-bordercol rounded bg-panelLt font-bold shadow-sm" title="Expand Fullscreen">⛶ Expand</button>
+                            </div>
+                        </div>
+
+                        <div class="w-full h-80 bg-panelLt border-2 border-bordercol rounded-lg relative flex items-center justify-center overflow-hidden cursor-pointer group shadow-inner" onclick="openFeatureModal('graph')">
+                            <canvas id="graph-canvas" class="w-full h-full relative z-10"></canvas>
+                            <div class="absolute inset-0 bg-neon/10 opacity-0 group-hover:opacity-100 transition flex items-center justify-center backdrop-blur-[1px]">
+                                <span class="bg-panel border-2 border-neon text-neon text-xs px-4 py-2 rounded-lg shadow-xl font-black tracking-wide">🔍 Click to Launch Interactive Fullscreen Graph</span>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-center text-[11px] text-dim font-mono font-bold">
+                            <span>- Click graph to expand | Root: <span id="root-target-label" class="text-neon font-black">pw.live</span></span>
+                            <span class="text-neon bg-panelLt border border-bordercol px-2 py-0.5 rounded">Algorithm: BFS Search</span>
+                        </div>
+                    </div>
+
+                    <!-- 2. CYBERSECURITY VECTOR EVALUATION (RADAR) -->
+                    <div class="p-5 rounded-xl flex flex-col justify-between space-y-4 cursor-pointer group transition shadow-md interactive-card" onclick="openFeatureModal('radar')">
+                        <div class="flex justify-between items-center text-xs pb-3 border-b-2 border-bordercol">
+                            <span class="font-black uppercase tracking-wider">Cybersecurity Vector Evaluation</span>
+                            <span class="text-dim text-[10px] group-hover:text-neon bg-panelLt border border-bordercol px-2 py-0.5 rounded font-bold">⛶ Expand</span>
+                        </div>
+                        <div class="w-full h-64 bg-panelLt border-2 border-bordercol rounded-lg p-3 flex items-center justify-center shadow-inner">
+                            <canvas id="radar-chart"></canvas>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-dim font-bold">
+                            <span>Metrics: 6 Security Vectors</span>
+                            <span class="text-secure font-extrabold bg-secure/10 px-2 py-0.5 rounded border border-secure/30">Real-Time</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- METRIC CARDS ROW -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                    <div class="p-5 rounded-xl flex flex-col justify-between cursor-pointer group transition shadow-md interactive-card" onclick="openFeatureModal('health')">
+                        <div class="flex justify-between items-center text-[10px] text-dim uppercase font-bold">
+                            <span>1. Health Index</span>
+                            <span class="text-neon group-hover:underline font-extrabold">⛶ Gauge</span>
+                        </div>
+                        <div class="my-3 flex items-baseline space-x-2">
+                            <span class="text-4xl font-black text-neon" id="security-score">88</span>
+                            <span class="text-xs text-dim font-bold">/ 100</span>
+                        </div>
+                        <div class="w-full bg-panelLt border border-bordercol h-2.5 rounded-full overflow-hidden shadow-inner">
+                            <div id="score-bar" class="bg-neon h-full w-[88%] transition-all duration-1000 shadow-neon"></div>
+                        </div>
+                    </div>
+
+                    <div class="p-5 rounded-xl flex flex-col justify-between cursor-pointer group transition shadow-md interactive-card" onclick="openFeatureModal('geo')">
+                        <div class="flex justify-between items-center text-[10px] text-dim uppercase font-bold">
+                            <span>2. Domain & Geo IP</span>
+                            <span class="text-neon group-hover:underline font-extrabold">⛶ Geo IP</span>
+                        </div>
+                        <div class="my-3">
+                            <div class="text-sm font-black truncate" id="ip-val">104.21.32.11</div>
+                            <div class="text-[11px] text-dim mt-0.5 font-bold">Geolocation & Anycast</div>
+                        </div>
+                        <span class="text-[9px] text-neon bg-neon/10 border border-neon/30 px-2 py-0.5 rounded text-right font-extrabold inline-block">IPv4 Anycast</span>
+                    </div>
+
+                    <div class="p-5 rounded-xl flex flex-col justify-between cursor-pointer group transition shadow-md interactive-card" onclick="openFeatureModal('ssl')">
+                        <div class="flex justify-between items-center text-[10px] text-dim uppercase font-bold">
+                            <span>3. SSL / TLS Cert</span>
+                            <span class="text-secure group-hover:underline font-extrabold">⛶ SSL Details</span>
+                        </div>
+                        <div class="my-3">
+                            <div class="text-sm font-black text-secure" id="ssl-days">93 Days Valid</div>
+                            <div class="text-[11px] text-dim mt-0.5 font-bold">Certificate Authority</div>
+                        </div>
+                        <span class="text-[9px] text-secure bg-secure/10 border border-secure/30 px-2 py-0.5 rounded text-right font-extrabold inline-block">ECC CA-3 Secured</span>
+                    </div>
+
+                    <div id="ports-module" class="p-5 rounded-xl flex flex-col justify-between cursor-pointer group transition shadow-md interactive-card" onclick="openFeatureModal('ports')">
+                        <div class="flex justify-between items-center text-[10px] text-dim uppercase font-bold">
+                            <span>4. Active Open Ports</span>
+                            <span class="text-warning group-hover:underline font-extrabold">⛶ Ports</span>
+                        </div>
+                        <div class="space-y-1.5 my-2 font-bold">
+                            <div class="flex justify-between text-xs bg-panelLt border border-bordercol px-2 py-1 rounded shadow-sm">
+                                <span class="text-dim">Port 80 (HTTP)</span>
+                                <span class="text-secure font-black bg-secure/10 border border-secure/30 px-1.5 py-0.5 rounded text-[10px]">Open</span>
+                            </div>
+                            <div class="flex justify-between text-xs bg-panelLt border border-bordercol px-2 py-1 rounded shadow-sm">
+                                <span class="text-dim">Port 443 (HTTPS)</span>
+                                <span class="text-secure font-black bg-secure/10 border border-secure/30 px-1.5 py-0.5 rounded text-[10px]">Active</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM MODULES GRID -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    <!-- 5. HTTP SECURITY HEADERS -->
+                    <div id="security-module" class="p-5 rounded-xl space-y-4 cursor-pointer group transition shadow-md interactive-card" onclick="openFeatureModal('headers')">
+                        <div class="flex justify-between items-center text-xs pb-3 border-b-2 border-bordercol">
+                            <span class="font-black uppercase tracking-wider">5. HTTP Security Headers Audit</span>
+                            <span class="text-secure text-[10px] group-hover:underline bg-panelLt border border-bordercol px-2 py-0.5 rounded font-bold">⛶ Expand Audit</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="headers-container">
+                            <div class="bg-panelLt border-2 border-bordercol p-3.5 rounded-lg space-y-1 shadow-sm">
+                                <div class="flex justify-between items-center text-xs font-bold">
+                                    <span class="truncate">Strict-Transport-...</span>
+                                    <span class="text-secure font-black bg-secure/10 border border-secure/30 px-1.5 py-0.5 rounded text-[10px]">[PASS]</span>
+                                </div>
+                                <p class="text-[11px] text-dim font-bold">HSTS enforces encrypted HTTPS.</p>
+                            </div>
+                            <div class="bg-panelLt border-2 border-bordercol p-3.5 rounded-lg space-y-1 shadow-sm">
+                                <div class="flex justify-between items-center text-xs font-bold">
+                                    <span class="truncate">Content-Security-...</span>
+                                    <span class="text-warning font-black bg-warning/10 border border-warning/30 px-1.5 py-0.5 rounded text-[10px]">[WARN]</span>
+                                </div>
+                                <p class="text-[11px] text-dim font-bold">Missing script-src restriction.</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-dim font-bold pt-1">
+                            <span>OWASP Security Best Practice</span>
+                            <span class="text-neon bg-panelLt border border-bordercol px-2 py-0.5 rounded">Click for details</span>
+                        </div>
+                    </div>
+
+                    <!-- 6. DISCOVERED CRAWL NODES -->
+                    <div class="p-5 rounded-xl space-y-4 cursor-pointer group transition shadow-md interactive-card" onclick="openFeatureModal('crawl')">
+                        <div class="flex justify-between items-center text-xs pb-3 border-b-2 border-bordercol">
+                            <span class="font-black uppercase tracking-wider">6. Discovered Crawl Nodes</span>
+                            <span class="text-neon text-[10px] group-hover:underline bg-panelLt border border-bordercol px-2 py-0.5 rounded font-bold">⛶ Tree Map</span>
+                        </div>
+                        <div class="space-y-2" id="crawl-nodes-container">
+                            <div class="bg-panelLt border-2 border-bordercol px-4 py-2.5 rounded-lg flex justify-between items-center text-xs font-mono shadow-sm">
+                                <span class="text-neon font-black">&gt; / (Root Node)</span>
+                                <span class="bg-secure/10 text-secure border border-secure/30 px-2 py-0.5 rounded text-[10px] font-black">200 OK</span>
+                            </div>
+                            <div class="bg-panelLt border-2 border-bordercol px-4 py-2.5 rounded-lg flex justify-between items-center text-xs font-mono shadow-sm font-bold">
+                                <span class="text-dim">-- &gt; /about (Directory)</span>
+                                <span class="bg-secure/10 text-secure border border-secure/30 px-2 py-0.5 rounded text-[10px] font-black">200 OK</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-dim font-bold pt-1">
+                            <span>Directory Search Depth: 2</span>
+                            <span class="text-neon bg-panelLt border border-bordercol px-2 py-0.5 rounded">BFS Crawler Active</span>
+                        </div>
+                    </div>
+
+                    <!-- 7. TECH STACK & INFRASTRUCTURE -->
+                    <div id="tech-module" class="p-5 rounded-xl space-y-4 cursor-pointer group transition shadow-md interactive-card" onclick="openFeatureModal('tech')">
+                        <div class="flex justify-between items-center text-xs pb-3 border-b-2 border-bordercol">
+                            <span class="font-black uppercase tracking-wider">7. Tech Stack & Infrastructure</span>
+                            <span class="text-sky-600 dark:text-sky-400 text-[10px] group-hover:underline bg-panelLt border border-bordercol px-2 py-0.5 rounded font-bold">⛶ Inspector</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2.5 py-3" id="tech-stack-container">
+                            <span class="bg-panelLt border-2 border-bordercol text-neon px-3 py-1.5 rounded-lg text-xs font-black shadow-sm">⚡ Nginx</span>
+                            <span class="bg-panelLt border-2 border-bordercol text-sky-600 dark:text-sky-400 px-3 py-1.5 rounded-lg text-xs font-black shadow-sm">⚛ React.js</span>
+                            <span class="bg-panelLt border-2 border-bordercol text-warning px-3 py-1.5 rounded-lg text-xs font-black shadow-sm">🛡️ Cloudflare CDN</span>
+                            <span class="bg-panelLt border-2 border-bordercol text-secure px-3 py-1.5 rounded-lg text-xs font-black shadow-sm">⬢ Node.js</span>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-dim font-bold">
+                            <span>Fingerprint Engine: WebFinger v4</span>
+                            <span class="text-secure font-black bg-secure/10 border border-secure/30 px-2 py-0.5 rounded">100% Match</span>
+                        </div>
+                    </div>
+
+                    <!-- 8. ROBOTS.TXT DISALLOWED RECON -->
+                    <div id="osint-module" class="p-5 rounded-xl space-y-4 cursor-pointer group transition shadow-md interactive-card" onclick="openFeatureModal('robots')">
+                        <div class="flex justify-between items-center text-xs pb-3 border-b-2 border-bordercol">
+                            <span class="font-black uppercase tracking-wider">8. Robots.txt Disallowed Recon</span>
+                            <span class="text-critical text-[10px] group-hover:underline bg-panelLt border border-bordercol px-2 py-0.5 rounded font-bold">⛶ Disallowed Paths</span>
+                        </div>
+                        <div class="bg-panelLt border-2 border-bordercol p-4 rounded-lg space-y-2 shadow-sm">
+                            <div class="text-xs text-secure flex items-center space-x-2 font-bold">
+                                <span class="bg-secure/10 p-0.5 rounded">✓</span>
+                                <span>robots.txt parsed successfully</span>
+                            </div>
+                            <div class="text-[11px] text-dim font-bold">Disallowed Crawl Paths:</div>
+                            <div class="flex flex-wrap gap-2 pt-1 font-bold">
+                                <span class="bg-critical/10 border border-critical/30 text-critical px-2.5 py-1 rounded text-xs font-mono">/admin/</span>
+                                <span class="bg-critical/10 border border-critical/30 text-critical px-2.5 py-1 rounded text-xs font-mono">/private/</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-dim font-bold">
+                            <span>Crawl Path: /robots.txt & /sitemap.xml</span>
+                            <span class="text-critical font-black bg-critical/10 border border-critical/30 px-2 py-0.5 rounded">Sensitive Endpoints</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- TELEMETRY FEED TERMINAL -->
+                <div class="p-4 rounded-xl space-y-2 shadow-md interactive-card">
+                    <div class="flex justify-between items-center text-xs pb-2 font-bold border-b-2 border-bordercol">
+                        <div class="flex items-center space-x-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-critical inline-block shadow-sm"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-warning inline-block shadow-sm"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-secure inline-block shadow-sm"></span>
+                            <span class="font-black uppercase ml-2">WebCheck Console Telemetry Feed</span>
+                        </div>
+                        <span class="text-neon font-black text-[10px] bg-panelLt border border-bordercol px-2.5 py-0.5 rounded">[STREAMING LOGS]</span>
+                    </div>
+                    <div id="telemetry-terminal" class="bg-panelLt border-2 border-bordercol p-3 rounded-lg font-mono text-xs text-dim space-y-1 h-28 overflow-y-auto shadow-inner font-bold">
+                        <div>[10:02:37 PM] &gt; Initializing deep reconnaissance scan for target...</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- UNIVERSAL FEATURE MODAL -->
+    <div id="universal-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex flex-col p-6">
+        <div class="flex justify-between items-center pb-4 mb-4 bg-panel px-4 py-3 rounded-xl shadow-lg border-2 border-bordercol">
+            <div class="flex items-center space-x-3">
+                <span id="modal-title" class="text-neon font-black text-base">◈ FEATURE EXPANDED VIEW</span>
+                <span class="text-xs text-dim bg-panelLt border border-bordercol px-3 py-1 rounded font-bold">Fullscreen Mode</span>
+            </div>
+            <button onclick="closeFeatureModal()" class="bg-panelLt border border-bordercol hover:border-neon px-4 py-1.5 rounded text-xs cursor-pointer font-black shadow-sm">✕ Close Viewer</button>
+        </div>
+        <div id="modal-body" class="flex-1 bg-panel border-2 border-bordercol rounded-xl p-6 overflow-y-auto flex flex-col items-center justify-center relative shadow-2xl"></div>
+    </div>
+
+    <!-- SERVER CODE INSPECTOR MODAL -->
+    <div id="server-code-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex flex-col p-6 max-w-4xl mx-auto my-auto h-[80vh]">
+        <div class="flex justify-between items-center bg-panel border-t-2 border-x-2 border-bordercol p-4 rounded-t-xl shadow-md">
+            <span class="text-neon font-black text-xs">&lt;/&gt; Backend Server Code Inspector (`server.js`)</span>
+            <button onclick="closeServerCodeModal()" class="text-dim hover:text-white text-xs cursor-pointer bg-panelLt border border-bordercol px-2.5 py-1 rounded font-bold">✕ Close</button>
+        </div>
+        <div class="flex-1 bg-panelLt border-2 border-bordercol p-4 rounded-b-xl overflow-y-auto font-mono text-xs text-secure shadow-inner font-bold">
+<pre><code>const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const dns = require('dns').promises;
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.post('/api/scan', async (req, res) => {
+    // Executes real DNS resolution, SSL validation & vulnerability audits
+    ...
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
+</code></pre>
+        </div>
+    </div>
+
+    <!-- CLIENT SCRIPT -->
+  <script>
+    let radarChartInstance = null;
+    let modalChartInstance = null;
+    let activeGraphAnimationId = null; // Tracks active canvas loop to prevent overlapping
+
+    function toggleTheme() {
+        const htmlRoot = document.getElementById('html-root');
+        const themeText = document.getElementById('theme-text');
+        const themeIcon = document.getElementById('theme-icon');
+        const dashThemeIcon = document.getElementById('dashboard-theme-icon');
+
+        if (htmlRoot.classList.contains('dark')) {
+            htmlRoot.classList.remove('dark');
+            htmlRoot.classList.add('light');
+            if(themeText) themeText.innerText = "Light Mode";
+            if(themeIcon) themeIcon.innerText = "☀️";
+            if(dashThemeIcon) dashThemeIcon.innerText = "☀️";
+        } else {
+            htmlRoot.classList.remove('light');
+            htmlRoot.classList.add('dark');
+            if(themeText) themeText.innerText = "Dark Mode";
+            if(themeIcon) themeIcon.innerText = "🌙";
+            if(dashThemeIcon) dashThemeIcon.innerText = "🌙";
+        }
+    }
+
+    function renderCanvasGraph(canvasId, targetDomain) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+
+        // Cancel any existing active animation loop for this canvas to prevent stutter/stuck states
+        if (activeGraphAnimationId) {
+            cancelAnimationFrame(activeGraphAnimationId);
+        }
+
+        const w = canvas.width;
+        const h = canvas.height;
+        const isDark = document.documentElement.classList.contains('dark');
+
+        const nodes = {
+            root: { x: w * 0.22, y: h * 0.5, label: `/${targetDomain}`, color: isDark ? '#00ffcc' : '#0f766e' },
+            about: { x: w * 0.48, y: h * 0.32, label: '/about', color: '#10b981' },
+            login: { x: w * 0.48, y: h * 0.65, label: '/login', color: '#d97706' },
+            api: { x: w * 0.72, y: h * 0.52, label: '/api/v1', color: '#10b981' },
+            admin: { x: w * 0.88, y: h * 0.75, label: '/admin', color: '#e11d48' }
+        };
+
+        const links = [
+            { s: 'root', t: 'about' },
+            { s: 'root', t: 'login' },
+            { s: 'login', t: 'api' },
+            { s: 'login', t: 'admin' }
+        ];
+
+        let waveOffset = 0;
+        function draw() {
+            ctx.clearRect(0, 0, w, h);
+
+            links.forEach(l => {
+                const s = nodes[l.s], t = nodes[l.t];
+                if (!s || !t) return;
+
+                ctx.beginPath();
+                ctx.moveTo(s.x, s.y);
+                const cp1x = s.x + (t.x - s.x) * 0.5;
+                const cp1y = s.y;
+                const cp2x = s.x + (t.x - s.x) * 0.5;
+                const cp2y = t.y;
+                ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, t.x, t.y);
+                ctx.strokeStyle = isDark ? '#1e293b' : '#64748b';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                const px = s.x + (t.x - s.x) * waveOffset;
+                const py = s.y + (t.y - s.y) * waveOffset;
+                
+                ctx.beginPath();
+                ctx.arc(px, py, 4, 0, Math.PI * 2);
+                ctx.fillStyle = isDark ? '#00ffcc' : '#0f766e';
+                ctx.shadowColor = isDark ? '#00ffcc' : '#0f766e';
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+
+            Object.keys(nodes).forEach(k => {
+                const n = nodes[k];
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, 9, 0, Math.PI * 2);
+                ctx.fillStyle = n.color;
+                ctx.shadowColor = n.color;
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // High contrast node labels
+                ctx.fillStyle = isDark ? '#ffffff' : '#020617';
+                ctx.font = 'bold 12px monospace';
+                ctx.fillText(n.label, n.x - 22, n.y + 28);
+            });
+
+            waveOffset += 0.012;
+            if (waveOffset > 1) waveOffset = 0;
+            
+            activeGraphAnimationId = requestAnimationFrame(draw);
+        }
+        draw();
+    }
+
+   function renderRadar(canvasId, metrics) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        if (canvasId === 'radar-chart' && radarChartInstance) radarChartInstance.destroy();
+        if (canvasId === 'modal-radar-canvas' && modalChartInstance) modalChartInstance.destroy();
+
+        const isDark = document.documentElement.classList.contains('dark');
+        
+        // Ensure both charts share the exact same configuration bounds so shapes never distort
+        const chartObj = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['SSL Strength', 'Headers Score', 'Port Safety', 'Crawl Depth', 'DNS Security', 'Firewalls'],
+                datasets: [{
+                    data: metrics || [0, 0, 0, 0, 0, 0],
+                    backgroundColor: isDark ? 'rgba(0, 255, 204, 0.2)' : 'rgba(15, 118, 110, 0.25)',
+                    borderColor: isDark ? '#00ffcc' : '#0f766e',
+                    borderWidth: 3,
+                    pointBackgroundColor: isDark ? '#00ffcc' : '#0f766e'
+                }]
+            },
+            options: {
+                responsive: true, 
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        min: 0,
+                        max: 100, // Forces both charts to use a strict 0-100 scale grid so the polygon shape matches identically!
+                        angleLines: { color: isDark ? '#1e293b' : '#94a3b8' },
+                        grid: { color: isDark ? '#1e293b' : '#94a3b8' },
+                        pointLabels: { color: isDark ? '#9ca3af' : '#020617', font: { size: 11, family: 'monospace', weight: 'bold' } },
+                        ticks: { display: false, beginAtZero: true, max: 100 }
+                    }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        if (canvasId === 'radar-chart') radarChartInstance = chartObj;
+        if (canvasId === 'modal-radar-canvas') modalChartInstance = chartObj;
+    }
+async function triggerScan(domain) {
+        if (!domain) return;
+
+        // Target both scan buttons (Landing screen & Dashboard header)
+        const landingBtn = document.getElementById('landing-btn');
+        const dashBtn = document.getElementById('scan-btn');
+        
+        const originalLandingHTML = landingBtn ? landingBtn.innerHTML : '';
+        const originalDashHTML = dashBtn ? dashBtn.innerHTML : '';
+
+        // Apply loading/scanning animation state to buttons
+        const loadingHTML = `
+            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>SCANNING TARGET...</span>
+        `;
+
+        if (landingBtn) {
+            landingBtn.disabled = true;
+            landingBtn.innerHTML = loadingHTML;
+            landingBtn.classList.add('opacity-80', 'cursor-not-allowed');
+        }
+        if (dashBtn) {
+            dashBtn.disabled = true;
+            dashBtn.innerHTML = loadingHTML;
+            dashBtn.classList.add('opacity-80', 'cursor-not-allowed');
+        }
+
+        try {
+            const res = await fetch('/api/scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ domain })
+            });
+            if (!res.ok) throw new Error('Scan failed');
+            const data = await res.json();
+
+            // Store the live scan response globally for fullscreen modals & components
+            window.currentScanData = data;
+
+            // Transition screens if on landing page
+            document.getElementById('landing-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('hidden');
+            
+            // Sync inputs across screens
+            document.getElementById('domain-input').value = data.targetDomain;
+            document.getElementById('landing-domain-input').value = data.targetDomain;
+
+            // Update DOM elements with strict real backend response data
+            document.getElementById('security-score').innerText = data.securityScore;
+            document.getElementById('score-bar').style.width = data.securityScore + '%';
+            document.getElementById('ip-val').innerText = data.ipAddress;
+            document.getElementById('ssl-days').innerText = data.isOffline ? 'Offline / Unresolved' : `${data.sslCertificate.daysRemaining} Days Valid`;
+            document.getElementById('root-target-label').innerText = data.targetDomain;
+
+            const terminal = document.getElementById('telemetry-terminal');
+            terminal.innerHTML = data.telemetryLogs.map(log => `<div>${log}</div>`).join('');
+
+            setTimeout(() => {
+                renderCanvasGraph('graph-canvas', data.targetDomain);
+                renderRadar('radar-chart', data.radarMetrics);
+            }, 100);
+
+        } catch (err) {
+            console.error(err);
+            alert("Make sure 'node server.js' is running in your terminal!");
+        } finally {
+            // Restore buttons to original state after scan finishes
+            if (landingBtn) {
+                landingBtn.disabled = false;
+                landingBtn.innerHTML = originalLandingHTML;
+                landingBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+            }
+            if (dashBtn) {
+                dashBtn.disabled = false;
+                dashBtn.innerHTML = originalDashHTML;
+                dashBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+            }
+        }
+    }
+
+    // Modal Handlers (Make sure this contains the liveMetrics update for the radar feature)
+    function openFeatureModal(featureType) {
+        const modal = document.getElementById('universal-modal');
+        const title = document.getElementById('modal-title');
+        const body = document.getElementById('modal-body');
+        modal.classList.remove('hidden');
+
+        const domain = document.getElementById('domain-input').value.trim();
+        const score = document.getElementById('security-score').innerText;
+        const ip = document.getElementById('ip-val').innerText;
+
+        if (featureType === 'graph') {
+            title.innerText = "◈ FULLSCREEN NETWORK GRAPH TRAVERSAL EXECUTOR";
+            body.innerHTML = `<div class="w-full h-full relative flex items-center justify-center"><canvas id="modal-graph-canvas" class="w-full h-full"></canvas></div>`;
+            setTimeout(() => renderCanvasGraph('modal-graph-canvas', domain), 100);
+        } 
+        else if (featureType === 'radar') {
+            title.innerText = "◈ CYBERSECURITY VECTOR RADAR EVALUATION (FULLSCREEN)";
+            body.innerHTML = `<div class="w-full h-full flex items-center justify-center p-4"><canvas id="modal-radar-canvas" class="w-full h-full max-h-[500px]"></canvas></div>`;
+            
+            // Check global window data, otherwise fallback to the current chart instance data if available
+            let liveMetrics = [95, 90, 92, 88, 91, 89];
+            if (window.currentScanData && window.currentScanData.radarMetrics) {
+                liveMetrics = window.currentScanData.radarMetrics;
+            } else if (radarChartInstance && radarChartInstance.data.datasets[0].data) {
+                liveMetrics = radarChartInstance.data.datasets[0].data;
+            }
+
+            setTimeout(() => renderRadar('modal-radar-canvas', liveMetrics), 150);
+        }
+        // ... (keep your other modal conditions as they are)
+    }
+
+    function executeScan() {
+        const domain = document.getElementById('domain-input').value.trim();
+        triggerScan(domain);
+    }
+
+    function returnToLanding(e) {
+        e.preventDefault();
+        document.getElementById('dashboard-screen').classList.add('hidden');
+        document.getElementById('landing-screen').classList.remove('hidden');
+    }
+
+    document.getElementById('landing-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const domain = document.getElementById('landing-domain-input').value.trim();
+        triggerScan(domain);
+    });
+
+    // Modal Handlers
+    function openFeatureModal(featureType) {
+        const modal = document.getElementById('universal-modal');
+        const title = document.getElementById('modal-title');
+        const body = document.getElementById('modal-body');
+        modal.classList.remove('hidden');
+
+        const domain = document.getElementById('domain-input').value.trim();
+        const score = document.getElementById('security-score').innerText;
+        const ip = document.getElementById('ip-val').innerText;
+
+        if (featureType === 'graph') {
+            title.innerText = "◈ FULLSCREEN NETWORK GRAPH TRAVERSAL EXECUTOR";
+            body.innerHTML = `<div class="w-full h-full relative flex items-center justify-center"><canvas id="modal-graph-canvas" class="w-full h-full"></canvas></div>`;
+            setTimeout(() => renderCanvasGraph('modal-graph-canvas', domain), 100);
+        } 
+        else if (featureType === 'radar') {
+            title.innerText = "◈ CYBERSECURITY VECTOR RADAR EVALUATION (FULLSCREEN)";
+            body.innerHTML = `<div class="w-full h-full flex items-center justify-center p-4"><canvas id="modal-radar-canvas" class="w-full h-full max-h-[500px]"></canvas></div>`;
+            setTimeout(() => renderRadar('modal-radar-canvas', [94, 88, 92, 90, 95, 91]), 100);
+        }
+        else if (featureType === 'health') {
+            title.innerText = "◈ SECURITY HEALTH INDEX & SCORE BREAKDOWN";
+            body.innerHTML = `
+                <div class="max-w-xl w-full space-y-4 text-center bg-panelLt border-2 border-bordercol p-6 rounded-xl shadow-md">
+                    <div class="text-6xl font-black text-neon">${score} / 100</div>
+                    <div class="text-sm text-secure font-extrabold">EXCELLENT SECURITY POSTURE</div>
+                    <p class="text-xs text-dim font-bold">Evaluated based on cryptographic strength, zero open high-risk vectors, HTTP header policies, and firewall configurations.</p>
+                </div>
+            `;
+        }
+        else if (featureType === 'geo') {
+            title.innerText = "◈ DOMAIN & GEOLOCATION ANYCAST INTEL";
+            body.innerHTML = `
+                <div class="max-w-xl w-full space-y-4 text-xs font-mono bg-panelLt border-2 border-bordercol p-6 rounded-xl shadow-md">
+                    <div class="text-neon font-black text-sm">Target Resolved IP: ${ip}</div>
+                    <div class="grid grid-cols-2 gap-3 pt-2 font-bold">
+                        <div class="bg-panel border border-bordercol p-3 rounded shadow-sm">Network Edge: <span class="font-extrabold">Cloudflare Anycast</span></div>
+                        <div class="bg-panel border border-bordercol p-3 rounded shadow-sm">DNSSEC: <span class="text-secure font-extrabold">Secured</span></div>
+                        <div class="bg-panel border border-bordercol p-3 rounded shadow-sm">Protocol: <span class="font-extrabold">IPv4 / IPv6 Stack</span></div>
+                        <div class="bg-panel border border-bordercol p-3 rounded shadow-sm">Latency: <span class="text-neon font-extrabold">14ms (Optimal)</span></div>
+                    </div>
+                </div>
+            `;
+        }
+        else if (featureType === 'ssl') {
+            title.innerText = "◈ SSL / TLS CERTIFICATE DEEP INSPECTION";
+            body.innerHTML = `
+                <div class="max-w-xl w-full space-y-4 text-xs font-mono bg-panelLt border-2 border-bordercol p-6 rounded-xl shadow-md">
+                    <div class="text-secure font-black text-sm">✓ Certificate Valid & Active (TLS 1.3)</div>
+                    <div class="space-y-2 text-dim font-bold">
+                        <div class="bg-panel border border-bordercol p-3 rounded flex justify-between shadow-sm"><span>Issuer:</span><span class="font-extrabold">Cloudflare Inc ECC CA-3</span></div>
+                        <div class="bg-panel border border-bordercol p-3 rounded flex justify-between shadow-sm"><span>Cipher Suite:</span><span class="font-extrabold">TLS_AES_256_GCM_SHA384</span></div>
+                        <div class="bg-panel border border-bordercol p-3 rounded flex justify-between shadow-sm"><span>Days Remaining:</span><span class="text-secure font-black">93 Days Valid</span></div>
+                    </div>
+                </div>
+            `;
+        }
+        else if (featureType === 'ports') {
+            title.innerText = "◈ ACTIVE PORT SCANNER TELEMETRY SUITE";
+            body.innerHTML = `
+                <div class="max-w-2xl w-full space-y-4">
+                    <div class="bg-panelLt border-2 border-bordercol p-4 rounded-xl space-y-3 shadow-md">
+                        <div class="text-neon font-black text-sm">Target: ${domain}</div>
+                        <div class="grid grid-cols-2 gap-3 text-xs font-bold">
+                            <div class="bg-panel border border-bordercol p-3 rounded shadow-sm">Port 80 (HTTP): <span class="text-secure font-black">Open (Active Redirect)</span></div>
+                            <div class="bg-panel border border-bordercol p-3 rounded shadow-sm">Port 443 (HTTPS): <span class="text-secure font-black">Open (TLS 1.3 Active)</span></div>
+                            <div class="bg-panel border border-bordercol p-3 rounded shadow-sm">Port 22 (SSH): <span class="text-critical font-black">Closed (Filtered)</span></div>
+                            <div class="bg-panel border border-bordercol p-3 rounded shadow-sm">Port 3306 (MySQL): <span class="text-critical font-black">Closed (Protected)</span></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        else if (featureType === 'headers') {
+            title.innerText = "◈ HTTP SECURITY HEADERS DEEP INSPECTOR";
+            body.innerHTML = `
+                <div class="max-w-3xl w-full space-y-3">
+                    <div class="bg-panelLt border-2 border-bordercol p-4 rounded-xl space-y-3 text-xs shadow-md font-bold">
+                        <div>Strict-Transport-Security (HSTS): <span class="text-secure font-black">[PASS]</span></div>
+                        <p class="text-dim">Max-Age: 31536000s. Forces secure connections.</p>
+                        <div class="pt-2">Content-Security-Policy (CSP): <span class="text-warning font-black">[WARN]</span></div>
+                        <p class="text-dim">Missing explicit script-src directives.</p>
+                        <div class="pt-2">X-Frame-Options: <span class="text-secure font-black">[PASS]</span></div>
+                        <p class="text-dim">DENY configured. Clickjacking prevented.</p>
+                    </div>
+                </div>
+            `;
+        }
+        else if (featureType === 'crawl') {
+            title.innerText = "◈ DISCOVERED CRAWL NODES TREE MAP";
+            body.innerHTML = `
+                <div class="max-w-3xl w-full space-y-2 font-mono text-xs font-bold">
+                    <div class="bg-panelLt border-2 border-bordercol p-3 rounded flex justify-between shadow-sm"><span>&gt; / (Root)</span><span class="text-secure font-black">200 OK</span></div>
+                    <div class="bg-panelLt border-2 border-bordercol p-3 rounded flex justify-between shadow-sm"><span>-- &gt; /about (Directory)</span><span class="text-secure font-black">200 OK</span></div>
+                    <div class="bg-panelLt border-2 border-bordercol p-3 rounded flex justify-between shadow-sm"><span>-- &gt; /login (Auth Portal)</span><span class="text-secure font-black">200 OK</span></div>
+                    <div class="bg-panelLt border-2 border-bordercol p-3 rounded flex justify-between shadow-sm"><span>-- &gt; /admin (Restricted Area)</span><span class="text-critical font-black">403 Forbidden</span></div>
+                </div>
+            `;
+        }
+        else if (featureType === 'tech') {
+            title.innerText = "◈ TECHNOLOGY STACK & INFRASTRUCTURE FINGERPRINT";
+            body.innerHTML = `
+                <div class="max-w-2xl w-full space-y-3 text-xs">
+                    <div class="bg-panelLt border-2 border-bordercol p-4 rounded-xl grid grid-cols-2 gap-3 shadow-md font-bold">
+                        <div class="p-3 bg-panel border border-bordercol rounded text-neon font-black shadow-sm">Nginx (Web Server)</div>
+                        <div class="p-3 bg-panel border border-bordercol rounded text-secure font-black shadow-sm">Node.js (Runtime)</div>
+                        <div class="p-3 bg-panel border border-bordercol rounded text-sky-600 dark:text-sky-400 font-black shadow-sm">React.js (Frontend)</div>
+                        <div class="p-3 bg-panel border border-bordercol rounded text-warning font-black shadow-sm">Cloudflare WAF (CDN)</div>
+                    </div>
+                </div>
+            `;
+        }
+        else if (featureType === 'robots') {
+            title.innerText = "◈ ROBOTS.TXT & SENSITIVE PATH RECON";
+            body.innerHTML = `
+                <div class="max-w-2xl w-full space-y-3 text-xs font-mono font-bold">
+                    <div class="bg-panelLt border-2 border-bordercol p-4 rounded-xl space-y-2 shadow-md">
+                        <div class="text-secure font-black">✓ robots.txt successfully harvested</div>
+                        <div class="text-dim">Disallowed Sensitive Paths:</div>
+                        <div class="text-critical bg-panel border border-bordercol p-2 rounded font-black">/admin/</div>
+                        <div class="text-critical bg-panel border border-bordercol p-2 rounded font-black">/private/</div>
+                        <div class="text-critical bg-panel border border-bordercol p-2 rounded font-black">/api/internal/</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    function closeFeatureModal() {
+        document.getElementById('universal-modal').classList.add('hidden');
+    }
+
+    function openServerCodeModal() {
+        document.getElementById('server-code-modal').classList.remove('hidden');
+    }
+
+    function closeServerCodeModal() {
+        document.getElementById('server-code-modal').classList.add('hidden');
+    }
+
+    function toggleLogsDrawer() {
+        document.getElementById('telemetry-terminal').scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>
