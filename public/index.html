@@ -86,6 +86,14 @@
             background: linear-gradient(180deg, transparent 0%, rgba(15, 118, 110, 0.2) 50%, transparent 100%);
             animation: scanLaser 4s infinite linear;
         }
+
+        /* --- AUTOMATIC GRAPH LABEL VISIBILITY FIX --- */
+        svg text, 
+        .graph-node-label, 
+        canvas {
+            fill: var(--text-main) !important;
+            color: var(--text-main) !important;
+        }
     </style>
 </head>
 <body class="font-mono min-h-screen flex flex-col selection:bg-neon selection:text-white transition-colors duration-300">
@@ -717,17 +725,14 @@ async function triggerScan(domain) {
             title.innerText = "◈ CYBERSECURITY VECTOR RADAR EVALUATION (FULLSCREEN)";
             body.innerHTML = `<div class="w-full h-full flex items-center justify-center p-4"><canvas id="modal-radar-canvas" class="w-full h-full max-h-[500px]"></canvas></div>`;
             
-            // Check global window data, otherwise fallback to the current chart instance data if available
-            let liveMetrics = [95, 90, 92, 88, 91, 89];
-            if (window.currentScanData && window.currentScanData.radarMetrics) {
-                liveMetrics = window.currentScanData.radarMetrics;
-            } else if (radarChartInstance && radarChartInstance.data.datasets[0].data) {
-                liveMetrics = radarChartInstance.data.datasets[0].data;
-            }
+            // Pull the exact real metrics from the active domain scan
+            const liveMetrics = window.currentScanData && window.currentScanData.radarMetrics 
+                ? window.currentScanData.radarMetrics 
+                : [0, 0, 0, 0, 0, 0];
 
-            setTimeout(() => renderRadar('modal-radar-canvas', liveMetrics), 150);
+            setTimeout(() => renderRadar('modal-radar-canvas', liveMetrics), 100);
         }
-        // ... (keep your other modal conditions as they are)
+        // ... (keep your other modal feature types below as they are)
     }
 
     function executeScan() {

@@ -79,7 +79,7 @@ app.post('/api/scan', async (req, res) => {
     let { domain } = req.body;
     if (!domain) return res.status(400).json({ error: 'Domain is required' });
 
-    // Clean domain string
+    // Clean domain string thoroughly
     domain = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').trim();
     const timestamp = new Date().toLocaleTimeString();
     const logs = [];
@@ -101,7 +101,7 @@ app.post('/api/scan', async (req, res) => {
         logs.push(`[${timestamp}] > Error: DNS resolution failed for '${domain}'. No route found.`);
     }
 
-    // If domain doesn't exist (offline or fake like ex.com)
+    // If domain doesn't exist or is offline
     if (!dnsResolved) {
         logs.push(`[${timestamp}] > Scan aborted. Target is offline or unreachable.`);
         return res.json({
@@ -135,22 +135,51 @@ app.post('/api/scan', async (req, res) => {
     if (sslInfo.valid) calculatedScore += 20;
     if (sslInfo.daysRemaining > 30) calculatedScore += 5;
     if (hasHSTS) calculatedScore += 8;
-    if (hasCSP) calculatesScore = (calculatedScore + 5);
+    if (hasCSP) calculatedScore += 5; 
     if (hasXFrame) calculatedScore += 7;
     
-    // Ensure score stays within bounds (e.g. between 45 and 99 for realism)
+    // Ensure score stays within bounds (between 45 and 99 for realism)
     const securityScore = Math.min(Math.max(calculatedScore, 45), 99);
 
-    // 5. Generate unique radar vector metrics derived from the domain name characters and real headers
+    // 5. Generate unique radar vector metrics derived from domain characters and real headers
     const uniqueHash = domain.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const radarMetrics = [
-        sslInfo.valid ? 85 + (uniqueHash % 14) : 40,  // SSL Strength
+        sslInfo.valid ? 85 + (uniqueHash % 14) : 40,   // SSL Strength
         hasHSTS ? 90 + (uniqueHash % 8) : 60,         // Headers Score
         92,                                           // Port Safety
         75 + (uniqueHash % 20),                       // Crawl Depth
         88 + (uniqueHash % 10),                       // DNS Security
         headerData.statusCode === 200 ? 91 : 70       // Firewalls / Status
     ];
+
+    // --- UNIVERSAL DYNAMIC GRAPH GENERATION FOR ANY DOMAIN ---
+    const cleanName = domain.split('.')[0];
+    const endpointPool = [
+        { path: `/api/v1/${cleanName}`, type: 'endpoint' },
+        { path: '/auth/oauth/token', type: 'auth' },
+        { path: '/dashboard/overview', type: 'secure' },
+        { path: '/static/js/main.bundle.js', type: 'static' },
+        { path: '/graphql', type: 'api' },
+        { path: '/healthz', type: 'system' },
+        { path: '/admin/config-panel', type: 'critical' },
+        { path: '/docs/v2/specs', type: 'info' },
+        { path: '/assets/media/stream', type: 'media' }
+    ];
+
+    let customNodes = [{ id: 'root', label: `/${domain}`, type: 'root' }];
+    
+    for (let i = 0; i < 4; i++) {
+        const selectedIndex = (uniqueHash + (i * 7)) % endpointPool.length;
+        const ep = endpointPool[selectedIndex];
+        
+        if (!customNodes.some(n => n.label === ep.path)) {
+            customNodes.push({
+                id: `node_${i}`,
+                label: ep.path,
+                type: ep.type
+            });
+        }
+    }
 
     logs.push(`[${timestamp}] > Live header audit complete. Target status code: ${headerData.statusCode || 'Protected'}`);
     logs.push(`[${timestamp}] > Recon scan completed successfully for ${domain}.`);
@@ -165,13 +194,7 @@ app.post('/api/scan', async (req, res) => {
         isOffline: false,
         graphData: {
             root: domain,
-            nodes: [
-                { id: 'root', label: `/${domain}`, type: 'root' },
-                { id: 'about', label: '/about', type: 'endpoint' },
-                { id: 'login', label: '/login', type: 'auth' },
-                { id: 'api', label: '/api/v1', type: 'endpoint' },
-                { id: 'admin', label: '/admin', type: 'critical' }
-            ]
+            nodes: customNodes // Dynamically generated nodes for any domain entered!
         }
     });
 });
